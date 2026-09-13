@@ -11,6 +11,7 @@ import {
   linkedSignal,
   type ModelSignal,
   type Signal,
+  type ValueEqualityFn,
   type WritableSignal,
 } from '@angular/core';
 import {createParser} from '../util/parser';
@@ -53,6 +54,17 @@ export interface TransformedValueOptions<TValue, TRaw> {
    * Format the model value into the raw value.
    */
   format: (value: TValue) => TRaw;
+
+  /**
+   * A comparison function which defines equality for raw values.
+   *
+   * When the function reports that a newly formatted value is equal to the current raw value, the
+   * current raw value is retained. This can be used to preserve object identity in transformed
+   * collections when the formatted contents have not changed.
+   *
+   * Defaults to referential equality using `Object.is`.
+   */
+  equal?: ValueEqualityFn<NoInfer<TRaw>>;
 }
 
 /**
@@ -88,7 +100,7 @@ export interface TransformedValueSignal<TRaw> extends WritableSignal<TRaw> {
  * omitting it leaves the model unchanged.
  *
  * @param value The model signal to synchronize with.
- * @param options Configuration including `parse` and `format` functions.
+ * @param options Configuration including `parse` and `format` functions and optional equality.
  * @returns A `TransformedValueSignal` representing the raw value with parse error tracking.
  * @publicApi 22.0
  *
@@ -122,11 +134,11 @@ export function transformedValue<TValue, TRaw>(
   value: ModelSignal<TValue>,
   options: TransformedValueOptions<TValue, TRaw>,
 ): TransformedValueSignal<TRaw> {
-  const {parse, format} = options;
+  const {parse, format, equal} = options;
   const parser = createParser(value, value.set, parse);
 
   // Create the result signal with overridden set/update and a `parseErrors` property.
-  const rawValue = linkedSignal(() => format(value()));
+  const rawValue = linkedSignal(() => format(value()), {equal});
   const result = rawValue as WritableSignal<TRaw> & {
     parseErrors: Signal<readonly ValidationError.WithoutFieldTree[]>;
   };

@@ -417,6 +417,33 @@ export class NumberInput implements FormValueControl<number | null> {
 
 Writing to the returned signal (`rawValue.set(...)`) runs `parse` and writes the result into `value`. Whenever the model changes from elsewhere - a `reset()`, a schema rule, or another part of the app - `format` runs again and the raw value updates to match.
 
+### Custom equality
+
+By default, transformed raw values use referential equality. For a collection transformation that
+creates new objects each time it formats the model, provide `equal` to retain the current raw value
+when the newly formatted collection is semantically unchanged:
+
+```ts
+protected readonly viewRows = transformedValue(this.value, {
+  parse: (rows: Row[]) => ({
+    value: {rows: rows.map((row) => ({id: row.id, points: row.score}))},
+  }),
+  format: (model) => model.rows.map((row) => ({id: row.id, score: row.points})),
+  equal: (a, b) =>
+    a.length === b.length &&
+    a.every(
+      (row, index) => row.id === b[index].id && row.score === b[index].score,
+    ),
+});
+```
+
+When `equal` returns `true`, the existing raw value and its object identities are retained. This is
+useful when a nested `form()` renders the transformed collection, because semantically unchanged
+items keep their existing fields. Only consider values equal when they represent the same logical
+items; otherwise field interaction and validation state could be associated with the wrong data.
+When iterating the nested form, continue to track each field by identity (for example,
+`@for (rowField of rowsForm; track rowField)`).
+
 ### Reporting parse errors
 
 Sometimes the raw value has no valid model representation - a half-typed date, or letters in a numeric field. The `NumberInput` above has this problem: `Number('abc')` is `NaN`, which `parse` happily writes into the model.

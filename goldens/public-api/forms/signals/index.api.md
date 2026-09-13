@@ -20,6 +20,7 @@ import { Provider } from '@angular/core';
 import { Resource } from '@angular/core';
 import { Signal } from '@angular/core';
 import { StandardSchemaV1 } from '@standard-schema/spec';
+import { ValueEqualityFn } from '@angular/core';
 import { WritableSignal } from '@angular/core';
 
 // @public
@@ -738,6 +739,7 @@ export function transformedValue<TValue, TRaw>(value: ModelSignal<TValue>, optio
 
 // @public
 export interface TransformedValueOptions<TValue, TRaw> {
+    equal?: ValueEqualityFn<NoInfer<TRaw>>;
     format: (value: TValue) => TRaw;
     parse: (rawValue: TRaw) => ParseResult<TValue>;
 }
